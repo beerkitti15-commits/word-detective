@@ -97,6 +97,7 @@ input.type{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:6
  <div class="duo" id="duo"></div>
 <div class="card reg" id="reg"><h2 style="font-size:1.6rem;margin-bottom:8px">🪪 ลงทะเบียนนักสืบ</h2>
  <label>ชื่อ-สกุล<input id="pn" class="in" type="text" maxlength="60" placeholder="เช่น สมชาย ใจดี" autocomplete="name"></label>
+ <label>ชุดคำศัพท์<select id="ps" class="in"><option value="default">ชุดตัวอย่าง (ในตัว)</option></select></label>
  <div class="row2"><label>ระดับชั้น<select id="pg" class="in"><option value="">-- เลือก --</option><option>ป.1</option><option>ป.2</option><option>ป.3</option><option>ป.4</option><option>ป.5</option><option>ป.6</option><option>ม.1</option><option>ม.2</option><option>ม.3</option><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></label>
  <label>เลขที่<input id="pc" class="in" type="number" min="1" max="99" inputmode="numeric" placeholder="เช่น 12"></label></div>
  <div class="err" id="perr"></div>
@@ -147,37 +148,21 @@ const BAD={c1:'#6b6b7a',c2:'#2d2d3a',h1:'#555',h2:'#222',mask:1,d:-2};
 $('duo').innerHTML=char(DOT)+char(BAD);$('duo2').innerHTML=char(DOT)+char(BAD);
 let S={};
 // ---- DATA ----
-const M1=[
-{w:'fraction',th:'เศษส่วน',s:'M',t:'Only 1/2 of the golden cake was left, so a '},
-{w:'angle',th:'มุม',s:'M',t:' of it was missing. The footprints turned at a sharp '},
-{w:'multiply',th:'คูณ',s:'M',t:' of 90 degrees near the door. To count the cookies, Dot had to '},
-{w:'gravity',th:'แรงโน้มถ่วง',s:'S',t:' 6 by 4 and got 24. A vase fell to the floor because '},
-{w:'magnet',th:'แม่เหล็ก',s:'S',t:' pulls everything down. A metal key stuck to the strange '},
-{w:'energy',th:'พลังงาน',s:'S',t:' on the desk. The lamp needs electric '},
-{w:'border',th:'พรมแดน',s:'SS',t:' to give light. The thief ran across the '},
-{w:'citizen',th:'พลเมือง',s:'SS',t:' line between two countries. A brave '},
-{w:'trade',th:'การค้า',s:'SS',t:' of the town called the police. He wanted to buy and sell stolen goods in a secret '},
-{w:'sentence',th:'ประโยค',s:'L',t:'. The note was one '},
-{w:'adjective',th:'คำคุณศัพท์',s:'L',t:' that started with a capital letter and ended with a period. The word “sneaky” is an '},
-{w:'synonym',th:'คำพ้องความหมาย',s:'L',t:' because it describes the thief. “Clever” is a '}];
-const M1end=' of “smart” because it has a similar meaning. Case closed!';
 const SUBJ={M:'Mathematics',S:'Science',SS:'Social Studies',L:'Language'};
-const M2=[
-{w:'total',th:'ผลรวม',t:'Dot added the clues and the '},
-{w:'equal',th:'เท่ากัน',t:' was seven. Two footprints were '},
-{w:'planet',th:'ดาวเคราะห์',t:' in size. The thief looked at a '},
-{w:'experiment',th:'การทดลอง',t:' through a telescope. In a science '},
-{w:'market',th:'ตลาด',t:' Dot tested the ink. At the '},
-{w:'map',th:'แผนที่',t:' she found a shop. Using a '},
-{w:'story',th:'เรื่องเล่า',t:' she followed the path. The shopkeeper told a '},
-{w:'describe',th:'บรรยาย',t:' and Dot asked him to '}];
-const M2end=' the thief.';
-const M3=[
-{w:'triangle',t:'The secret door had the shape of a '},
-{w:'microscope',t:'. Dot used a '},
-{w:'culture',t:' to see the tiny fingerprint. The thief loved the local '},
-{w:'poem',t:' of the town and left a '}];
-const M3end=' on the wall.';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DEFAULT_SET={m1:{words:[
+{w:'fraction',th:'เศษส่วน',s:'M'},{w:'angle',th:'มุม',s:'M'},{w:'multiply',th:'คูณ',s:'M'},{w:'gravity',th:'แรงโน้มถ่วง',s:'S'},{w:'magnet',th:'แม่เหล็ก',s:'S'},{w:'energy',th:'พลังงาน',s:'S'},
+{w:'border',th:'พรมแดน',s:'SS'},{w:'citizen',th:'พลเมือง',s:'SS'},{w:'trade',th:'การค้า',s:'SS'},{w:'sentence',th:'ประโยค',s:'L'},{w:'adjective',th:'คำคุณศัพท์',s:'L'},{w:'synonym',th:'คำพ้องความหมาย',s:'L'}],
+text:'Only 1/2 of the golden cake was left, so a [1] of it was missing. The footprints turned at a sharp [2] of 90 degrees near the door. To count the cookies, Dot had to [3] 6 by 4 and got 24. A vase fell to the floor because [4] pulls everything down. A metal key stuck to the strange [5] on the desk. The lamp needs electric [6] to give light. The thief ran across the [7] line between two countries. A brave [8] of the town called the police. He wanted to buy and sell stolen goods in a secret [9]. The note was one [10] that started with a capital letter and ended with a period. The word “sneaky” is an [11] because it describes the thief. “Clever” is a [12] of “smart” because it has a similar meaning. Case closed!'},
+m2:{words:[{w:'total',th:'ผลรวม',s:'M'},{w:'equal',th:'เท่ากัน',s:'M'},{w:'planet',th:'ดาวเคราะห์',s:'S'},{w:'experiment',th:'การทดลอง',s:'S'},{w:'market',th:'ตลาด',s:'SS'},{w:'map',th:'แผนที่',s:'SS'},{w:'story',th:'เรื่องเล่า',s:'L'},{w:'describe',th:'บรรยาย',s:'L'}],
+text:'Dot added the clues and the [1] was seven. Two footprints were [2] in size. The thief looked at a [3] through a telescope. In a science [4] Dot tested the ink. At the [5] she found a shop. Using a [6] she followed the path. The shopkeeper told a [7] and Dot asked him to [8] the thief.'},
+m3:{words:[{w:'triangle',th:'สามเหลี่ยม',s:'M'},{w:'microscope',th:'กล้องจุลทรรศน์',s:'S'},{w:'culture',th:'วัฒนธรรม',s:'SS'},{w:'poem',th:'บทกวี',s:'L'}],
+text:'The secret door had the shape of a [1]. Dot used a [2] to see the tiny fingerprint. The thief loved the local [3] of the town and left a [4] on the wall.'}};
+let M1=[],M2=[],M3=[],P1=[],P2=[],P3=[];
+const parts=t=>String(t).split(/\[\d+\]/);
+const join=(ps,fn)=>ps.map((p,i)=>esc(p)+(i<ps.length-1?fn(i):'')).join('');
+function applySet(c){M1=c.m1.words;M2=c.m2.words;M3=c.m3.words;P1=parts(c.m1.text);P2=parts(c.m2.text);P3=parts(c.m3.text)}
+applySet(DEFAULT_SET);
 // ---- helpers ----
 function say(t){$('say').textContent=t}
 function setScore(d,e){S.score+=d;$('score').textContent=S.score;$('combo').textContent='×'+Math.max(1,S.combo);
@@ -205,16 +190,21 @@ function shuffle(a){return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).ma
 function mark(el,cls,txt){el.className='blank pop '+cls;el.textContent=txt}
 let P=null;
 try{const j=JSON.parse(localStorage.getItem('wdPlayer')||'null');if(j){$('pn').value=j.n||'';$('pg').value=j.g||'';$('pc').value=j.c||''}}catch(e){}
-function register(){
+async function register(){
  const n=$('pn').value.trim().replace(/\s+/g,' '),g=$('pg').value,c=parseInt($('pc').value,10),e=$('perr');
  let m='';
  if(n.length<3||!n.includes(' '))m='กรุณากรอกทั้งชื่อและสกุล (เว้นวรรคระหว่างชื่อกับสกุล)';
  else if(!g)m='กรุณาเลือกระดับชั้น';
  else if(!(c>=1&&c<=99))m='กรุณากรอกเลขที่ (1–99)';
  if(m){e.textContent='⚠ '+m;beep(200,.25);$('reg').classList.remove('shake');void $('reg').offsetWidth;$('reg').classList.add('shake');return}
+ const sid=$('ps').value;
+ try{if(sid==='default')applySet(DEFAULT_SET);else{const r=await fetch('/api/sets/'+sid);if(!r.ok)throw 0;applySet((await r.json()).content)}}
+ catch(x){e.textContent='⚠ โหลดชุดคำศัพท์ไม่สำเร็จ ลองใหม่อีกครั้ง';return}
  e.textContent='';P={n,g,c};try{localStorage.setItem('wdPlayer',JSON.stringify(P))}catch(x){}
  chime();start();
 }
+async function loadSets(){try{const r=await fetch('/api/sets');if(!r.ok)return;const l=await r.json();if(!Array.isArray(l)||!l.length)return;$('ps').innerHTML=l.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}${s.level?' ('+esc(s.level)+')':''}</option>`).join('')+'<option value="default">ชุดตัวอย่าง (ในตัว)</option>'}catch(x){}}
+loadSets();
 ['pn','pc'].forEach(i=>$(i).addEventListener('keydown',ev=>{if(ev.key==='Enter')register()}));
 function start(){S={score:0,combo:0,m:1,i:0};$('score').textContent=0;$('combo').textContent='×1';$('who').textContent='👤 '+P.n+' · '+P.g+' เลขที่ '+P.c;show('game');m1()}
 // ---- Mission 1 ----
@@ -224,10 +214,8 @@ function m1(){
  $('hero').outerHTML=char(DOT).replace('class="scene"','class="scene" id="hero"');
  $('hint').innerHTML='';
  $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">เขียว ถูก +10</span><span style="background:var(--y)">เหลือง ผิดแต่วิชาเดียวกัน +5</span><span style="background:var(--r);color:#fff">แดง ผิดคนละวิชา 0</span></div>';
- // passage texts are offset: first segment before blank 1, etc.
- const segs=['Only 1/2 of the golden cake was left, so a ','of it was missing. The footprints turned at a sharp ','of 90 degrees near the door. To count the cookies, Dot had to ','6 by 4 and got 24. A vase fell to the floor because ','pulls everything down. A metal key stuck to the strange ','on the desk. The lamp needs electric ','to give light. The thief ran across the ','line between two countries. A brave ','of the town called the police. He wanted to buy and sell stolen goods in a secret ','. The note was one ','that started with a capital letter and ended with a period. The word “sneaky” is an ','because it describes the thief. “Clever” is a '];
- $('passage').innerHTML=segs.map((t,i)=>t+`<button class="blank" id="b${i}">${i+1}</button>`).join(' ')+' of “smart” because it has a similar meaning. Case closed!';
- $('ctrl').innerHTML='<div class="bank" id="bank">'+shuffle(M1.map((x,i)=>i)).map(i=>`<button class="chip" id="c${i}" onclick="pick1(${i})">${M1[i].w}<small>${M1[i].th}</small></button>`).join('')+'</div>';
+  $('passage').innerHTML=join(P1,i=>`<button class="blank" id="b${i}">${i+1}</button>`);
+ $('ctrl').innerHTML='<div class="bank" id="bank">'+shuffle(M1.map((x,i)=>i)).map(i=>`<button class="chip" id="c${i}" onclick="pick1(${i})">${esc(M1[i].w)}<small>${esc(M1[i].th)}</small></button>`).join('')+'</div>';
  $('b0').classList.add('on');say('ช่อง 1: อ่านเบาะแสรอบ ๆ ช่องว่าง แล้วเลือกคำศัพท์ที่ใช่!');
 }
 function pick1(k){
@@ -243,8 +231,8 @@ function pick1(k){
 function m2(){
  $('mname').textContent='🔎 ภารกิจ 2: แกะรหัสคำศัพท์';S.combo=0;$('combo').textContent='×1';
  $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">ถูก +10</span><span style="background:var(--r);color:#fff">ผิด −10 (เฉลยทันที)</span></div>';
- $('hint').innerHTML='<div class="hint">'+shuffle(M2.slice()).map(x=>`<span>${x.th}</span>`).join('')+'</div>';
- $('passage').innerHTML=M2.map((x,i)=>x.t+`<input class="type" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${i+1}">`).join('')+M2end;
+ $('hint').innerHTML='<div class="hint">'+shuffle(M2.slice()).map(x=>`<span>${esc(x.th)}</span>`).join('')+'</div>';
+ $('passage').innerHTML=join(P2,i=>`<input class="type" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${i+1}">`);
  $('ctrl').innerHTML='<div class="center"><button class="btn" id="chk" onclick="chk2()">ตรวจคำตอบ</button></div>';
  say('อ่านคำแปลภาษาไทยด้านบน แล้วพิมพ์คำศัพท์ภาษาอังกฤษลงในช่อง 8 ช่อง');
 }
@@ -260,7 +248,7 @@ function m3(){
  $('mname').textContent='🎤 ภารกิจ 3: ถอดรหัสเสียง';S.sel=-1;S.done=0;S.used=[];
  $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">พูดถูก+ตำแหน่งถูก +10</span><span style="background:var(--y)">พูดถูก ตำแหน่งผิด +5</span><span style="background:var(--r);color:#fff">พูดผิด −10</span></div>';
  $('hint').innerHTML='<div class="hint">'+shuffle(M3.slice()).map(x=>`<span style="font-size:1.1rem">${x.w}</span>`).join('')+'</div>';
- $('passage').innerHTML=M3.map((x,i)=>x.t+`<button class="blank on" id="v${i}" onclick="sel3(${i})">${i+1}</button>`).join('')+M3end;
+ $('passage').innerHTML=join(P3,i=>`<button class="blank on" id="v${i}" onclick="sel3(${i})">${i+1}</button>`);
  const sr=window.SpeechRecognition||window.webkitSpeechRecognition;
  $('ctrl').innerHTML=`<div class="center"><button class="btn mic" id="mic" onclick="listen()">🎤 กดแล้วพูด</button>
  <div style="margin-top:12px;font-size:.9rem">ไมค์ใช้ไม่ได้? พิมพ์แทนเสียง: <input class="type" id="tx" placeholder="คำที่พูด"> <button class="btn" style="font-size:.9rem;padding:4px 14px" onclick="said($('tx').value);$('tx').value=''">ส่ง</button></div></div>`;

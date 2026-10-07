@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>หลังบ้าน – Word Detective</title>
+<style>
+body{margin:0;font-family:'Mali',Tahoma,sans-serif;background:#2b2f6b;color:#1d2340;padding:12px}
+.box{background:#fff6dd;border:4px solid #1d2340;border-radius:18px;padding:16px;max-width:980px;margin:0 auto 12px;box-shadow:0 6px 0 #0006}
+h1,h2{margin:0 0 10px}input,select,textarea,button{font:inherit;border:3px solid #1d2340;border-radius:10px;padding:7px 10px}
+input,textarea{width:100%;box-sizing:border-box;background:#fff}textarea{min-height:180px;font-family:monospace}
+button{background:#ffc83d;font-weight:700;cursor:pointer;box-shadow:0 3px 0 #1d2340}button.b{background:#fff}button.d{background:#ef4d5b;color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.row>*{flex:1}.row>button{flex:none}
+.set{display:flex;justify-content:space-between;gap:8px;padding:8px;border:2px solid #1d2340;border-radius:10px;margin:6px 0;background:#fff;cursor:pointer}
+.set.on{background:#fff0a8}.msg{font-weight:700;min-height:1.4em}.ok{color:#157a3e}.er{color:#c4202e}small{color:#6b6450}
+.ps textarea{min-height:130px;font-family:inherit}.hide{display:none}
+</style></head><body>
+<div class="box" id="login"><h1>🔐 หลังบ้านครู</h1><div class="row"><input id="pw" type="password" placeholder="รหัสผ่านผู้ดูแล (ADMIN_PASSWORD)"><button onclick="login()">เข้าสู่ระบบ</button></div><div class="msg er" id="lm"></div></div>
+<div id="app" class="hide">
+ <div class="box"><h1>🕵️ จัดการชุดคำศัพท์</h1><div id="list"></div><button onclick="newSet()">➕ สร้างชุดใหม่</button> <a href="/" style="margin-left:10px">ไปหน้าเกม</a> <small id="aiinfo"></small></div>
+ <div class="box hide" id="ed">
+  <h2>แก้ไขชุดคำศัพท์</h2>
+  <div class="row"><input id="nm" placeholder="ชื่อชุด เช่น Week 5 – Science"><input id="lv" placeholder="ระดับชั้น เช่น ป.5 (ไม่บังคับ)"></div>
+  <small>1 บรรทัด = 1 คำ รูปแบบ: <b>word , คำแปลไทย , วิชา</b> (วิชา = M คณิต / S วิทย์ / SS สังคม / L ภาษา) ใช้ , หรือ | หรือ Tab คั่นได้ ต้องมีอย่างน้อย 12 คำ (แนะนำ 24+)</small>
+  <textarea id="wd" placeholder="fraction, เศษส่วน, M&#10;gravity, แรงโน้มถ่วง, S&#10;border, พรมแดน, SS&#10;synonym, คำพ้องความหมาย, L"></textarea>
+  <div class="row"><button onclick="saveSet()">💾 บันทึกคำศัพท์</button><button onclick="gen()">✨ ให้ AI สร้าง Passage</button><button class="d" onclick="delSet()">🗑 ลบชุดนี้</button></div>
+  <div class="msg" id="m"></div>
+  <div class="ps hide" id="ps"><h2>Passage ที่ AI สร้าง (แก้ไขได้)</h2><small>ช่องว่างคือ [1] [2] … ต้องคงไว้ครบและเรียงลำดับ</small>
+   <b>ภารกิจ 1 (12 ช่อง)</b><textarea id="t1"></textarea><b>ภารกิจ 2 (8 ช่อง)</b><textarea id="t2"></textarea><b>ภารกิจ 3 (4 ช่อง)</b><textarea id="t3"></textarea>
+   <div class="row"><button onclick="saveTexts()">💾 บันทึกการแก้ passage</button><button class="b" onclick="gen()">🔄 สร้างใหม่</button></div></div>
+ </div></div>
+<script>
+const $=i=>document.getElementById(i);let PW=sessionStorage.getItem('wdpw')||'',SETS=[],CUR=null;
+async function api(m,u,b){const r=await fetch(u,{method:m,headers:{'content-type':'application/json','x-admin-password':PW},body:b?JSON.stringify(b):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('error '+r.status));return j}
+async function login(){PW=$('pw').value||PW;try{const p=await api('GET','/api/admin/ping');sessionStorage.setItem('wdpw',PW);$('login').classList.add('hide');$('app').classList.remove('hide');$('aiinfo').textContent=p.ai?'AI: พร้อมใช้งาน':'⚠ ยังไม่ตั้ง ANTHROPIC_API_KEY';refresh()}catch(e){$('lm').textContent=e.message}}
+async function refresh(){SETS=await api('GET','/api/admin/sets');$('list').innerHTML=SETS.map(s=>`<div class="set ${CUR&&CUR.id===s.id?'on':''}" onclick="pick('${s.id}')"><span><b>${esc(s.name)}</b> <small>${esc(s.level||'')}</small></span><span>${s.words.length} คำ ${s.content?'✅ มี passage':'⏳ ยังไม่มี passage'}</span></div>`).join('')||'<small>ยังไม่มีชุดคำศัพท์</small>'}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SB={M:'M',S:'S',SS:'SS',L:'L'};
+function msg(t,ok){$('m').textContent=t;$('m').className='msg '+(ok?'ok':'er')}
+function pick(id){CUR=SETS.find(s=>s.id===id);$('ed').classList.remove('hide');$('nm').value=CUR.name;$('lv').value=CUR.level||'';$('wd').value=CUR.words.map(x=>`${x.w}, ${x.th}, ${x.s}`).join('\n');showTexts();msg('');refresh()}
+function showTexts(){const c=CUR&&CUR.content;$('ps').classList.toggle('hide',!c);if(c){$('t1').value=c.m1.text;$('t2').value=c.m2.text;$('t3').value=c.m3.text}}
+async function newSet(){const s=await api('POST','/api/admin/sets',{name:'ชุดใหม่',words:[]});await refresh();pick(s.id)}
+function subj(s){s=s.trim().toLowerCase();if(s==='ss'||s.startsWith('social')||s.startsWith('สังคม'))return'SS';if(s==='m'||s.startsWith('math')||s.startsWith('คณิต'))return'M';if(s==='s'||s.startsWith('sci')||s.startsWith('วิทย์')||s.startsWith('วิทยา'))return'S';if(s==='l'||s.startsWith('lang')||s.startsWith('ภาษา'))return'L';return''}
+function parse(){return $('wd').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(/\t|\||,/).map(x=>x.trim()).filter(Boolean);return{w:p[0]||'',th:p.slice(1,-1).join(', '),s:subj(p[p.length-1]||'')}})}
+async function saveSet(){try{const rows=parse();const s=await api('PUT','/api/admin/sets/'+CUR.id,{name:$('nm').value,level:$('lv').value,words:rows});const bad=rows.length-s.words.length;await refresh();CUR=SETS.find(x=>x.id===s.id);showTexts();msg(`บันทึกแล้ว ${s.words.length} คำ`+(bad?` (ข้าม ${bad} บรรทัดที่รูปแบบไม่ถูกต้องหรือซ้ำ)`:'')+(s.content?'':' – กด ✨ เพื่อสร้าง passage'),!bad)}catch(e){msg(e.message)}}
+async function gen(){try{await saveSet();msg('⏳ AI กำลังเขียน passage… (ประมาณ 10–30 วินาที)',true);const s=await api('POST',`/api/admin/sets/${CUR.id}/generate`);await refresh();CUR=SETS.find(x=>x.id===s.id);showTexts();msg('✅ สร้าง passage สำเร็จ ตรวจ/แก้ไขได้ด้านล่าง',true)}catch(e){msg(e.message)}}
+async function saveTexts(){try{const s=await api('PUT','/api/admin/sets/'+CUR.id,{texts:{m1:$('t1').value,m2:$('t2').value,m3:$('t3').value}});await refresh();CUR=SETS.find(x=>x.id===s.id);msg('บันทึก passage แล้ว',true)}catch(e){msg(e.message)}}
+async function delSet(){if(!confirm('ลบชุดคำศัพท์นี้?'))return;await api('DELETE','/api/admin/sets/'+CUR.id);CUR=null;$('ed').classList.add('hide');refresh()}
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')login()});if(PW){$('pw').value=PW;login()}
+</script></body></html>
