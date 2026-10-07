@@ -55,6 +55,13 @@ input.type{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:6
 .in{display:block;width:100%;font:inherit;border:3px solid var(--ink);border-radius:12px;padding:8px 12px;margin-top:4px;background:#fff;color:var(--ink)}
 .in:focus{outline:3px solid var(--gold)}.row2{display:grid;grid-template-columns:2fr 1fr;gap:10px}
 .err{color:#c4202e;font-weight:700;min-height:1.3em}.muted{font-size:.8rem;color:#6b6450}
+.timer{display:flex;align-items:center;gap:8px;margin:8px 0;font-weight:700}.timer.hide{display:none}
+.tb{flex:1;height:16px;border:3px solid var(--ink);border-radius:10px;background:#fff;overflow:hidden}
+#tbar{height:100%;width:100%;background:var(--g);transition:width .2s linear,background .3s}
+.timer.warn #tbar{background:var(--r)}.timer.warn #tnum{color:#c4202e;animation:pu .5s infinite}
+#tnum{min-width:2ch;text-align:right;font-size:1.3rem}
+.chip.leave{animation:leave .35s forwards}.chip.gone{display:none}@keyframes leave{to{transform:scale(0) rotate(25deg);opacity:0}}
+input.type:disabled{opacity:.45}
 /* ===== 3D cartoon characters (CSS) ===== */
 .scene{perspective:700px;width:150px;height:200px;flex:none}
 .char{position:relative;width:150px;height:200px;transform-style:preserve-3d;animation:sway 5s ease-in-out infinite}
@@ -119,6 +126,7 @@ input.type{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:6
  <div class="hud"><span class="pill" id="mname"></span><span class="pill" id="who"></span><span class="pill">คะแนน <b id="score">0</b></span><span class="pill">คอมโบ <b id="combo">×1</b></span><span class="pill" style="cursor:pointer" onclick="toggleSound()" id="snd2">🔊</span></div>
  <div class="card">
   <div class="stage"><div class="scene" id="hero"></div><div class="say" id="say"></div></div>
+  <div class="timer hide" id="timer"><span>⏱</span><div class="tb"><div id="tbar"></div></div><b id="tnum">60</b><small>วิ / คำ</small></div>
   <div id="legend"></div>
   <div id="hint"></div>
   <div class="passage" id="passage"></div>
@@ -188,6 +196,12 @@ document.addEventListener('pointerdown',startMusic,{once:true});
 function show(id){setTimeout(setVol,0);document.querySelectorAll('.scr').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0);setVol()}
 function shuffle(a){return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1])}
 function mark(el,cls,txt){el.className='blank pop '+cls;el.textContent=txt}
+const TLIM=60;
+function tDraw(ms){const n=Math.max(0,Math.ceil(ms/1000));$('tnum').textContent=n;$('tbar').style.width=Math.max(0,ms/(TLIM*10))+'%';$('timer').classList.toggle('warn',n<=10);return n}
+function tStart(fn){clearInterval(S.tiv);S.onT=fn;S.dl=Date.now()+TLIM*1000;S.ln=TLIM;$('timer').classList.remove('hide');tDraw(TLIM*1000);S.tiv=setInterval(tTick,200)}
+function tReset(){S.dl=Date.now()+TLIM*1000;S.ln=TLIM;tDraw(TLIM*1000)}
+function tStop(){clearInterval(S.tiv);S.tiv=0;$('timer').classList.add('hide')}
+function tTick(){const ms=S.dl-Date.now(),n=tDraw(ms);if(n!==S.ln){S.ln=n;if(n>0&&n<=5)beep(950,.06)}if(ms<=0){tReset();if(S.onT)S.onT()}}
 let P=null;
 try{const j=JSON.parse(localStorage.getItem('wdPlayer')||'null');if(j){$('pn').value=j.n||'';$('pg').value=j.g||'';$('pc').value=j.c||''}}catch(e){}
 async function register(){
@@ -206,7 +220,7 @@ async function register(){
 async function loadSets(){try{const r=await fetch('/api/sets');if(!r.ok)return;const l=await r.json();if(!Array.isArray(l)||!l.length)return;$('ps').innerHTML=l.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}${s.level?' ('+esc(s.level)+')':''}</option>`).join('')+'<option value="default">ชุดตัวอย่าง (ในตัว)</option>'}catch(x){}}
 loadSets();
 ['pn','pc'].forEach(i=>$(i).addEventListener('keydown',ev=>{if(ev.key==='Enter')register()}));
-function start(){S={score:0,combo:0,m:1,i:0};$('score').textContent=0;$('combo').textContent='×1';$('who').textContent='👤 '+P.n+' · '+P.g+' เลขที่ '+P.c;show('game');m1()}
+function start(){clearInterval(S.tiv);S={score:0,combo:0,m:1,i:0,hid:new Set()};$('score').textContent=0;$('combo').textContent='×1';$('who').textContent='👤 '+P.n+' · '+P.g+' เลขที่ '+P.c;show('game');m1()}
 // ---- Mission 1 ----
 function passageHTML(a,end,mk){return a.map((x,i)=>x.t+`<button class="blank" id="b${i}" ${mk?'':''}>${i+1}</button>`).join('')+end}
 function m1(){
@@ -216,37 +230,54 @@ function m1(){
  $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">เขียว ถูก +10</span><span style="background:var(--y)">เหลือง ผิดแต่วิชาเดียวกัน +5</span><span style="background:var(--r);color:#fff">แดง ผิดคนละวิชา 0</span></div>';
   $('passage').innerHTML=join(P1,i=>`<button class="blank" id="b${i}">${i+1}</button>`);
  $('ctrl').innerHTML='<div class="bank" id="bank">'+shuffle(M1.map((x,i)=>i)).map(i=>`<button class="chip" id="c${i}" onclick="pick1(${i})">${esc(M1[i].w)}<small>${esc(M1[i].th)}</small></button>`).join('')+'</div>';
- $('b0').classList.add('on');say('ช่อง 1: อ่านเบาะแสรอบ ๆ ช่องว่าง แล้วเลือกคำศัพท์ที่ใช่!');
+ S.hid=new Set();S.first=null;S.lock=false;$('b0').classList.add('on');say('ช่อง 1: อ่านเบาะแสแล้วเลือกคำศัพท์ที่ใช่ ⏱ มีเวลาคำละ 1 นาที ตอบผิดคำนั้นจะหายไปให้เลือกใหม่');tStart(onT1);
 }
 function pick1(k){
- const i=S.i,c=M1[i],b=$('b'+i),chosen=M1[k];b.classList.remove('on');
- if(k===i){S.combo++;const p=10*Math.max(1,S.combo);setScore(p,b);mark(b,'g',c.w);beep(660);beep(880,.2);say(S.combo>1?`ยอดเยี่ยม! คอมโบ ×${S.combo} 🔥`:'ถูกต้อง! เบาะแสนี้ใช่เลย ✔');$('c'+k).disabled=true}
- else{S.combo=0;const same=chosen.s===c.s;if(same){setScore(5,b);mark(b,'y',c.w);say(`เกือบแล้ว! “${chosen.w}” อยู่วิชาเดียวกัน (${SUBJ[c.s]}) – เฉลย: ${c.w}`)}
-  else{setScore(0,b);mark(b,'r',c.w);say(`ผิดวิชา! “${chosen.w}” เป็นวิชา ${SUBJ[chosen.s]} – เฉลย: ${c.w}`)}
-  beep(200,.3);b.classList.add('shake');$('c'+i).disabled=true}
- S.i++;
- if(S.i<M1.length){$('b'+S.i).classList.add('on')}else setTimeout(()=>{say('ภารกิจ 1 สำเร็จ! ไปต่อกันเลย');setTimeout(m2,1400)},700);
+ if(S.lock)return;
+ const i=S.i,c=M1[i],b=$('b'+i),chosen=M1[k];
+ if(k===i){
+  if(S.first==null){S.combo++;setScore(10*Math.max(1,S.combo),b);mark(b,'g',c.w);beep(660);beep(880,.2);say(S.combo>1?`ยอดเยี่ยม! คอมโบ ×${S.combo} 🔥 ⏱ เวลาเริ่มนับใหม่`:'ถูกต้อง! เบาะแสนี้ใช่เลย ✔ ⏱ เวลาเริ่มนับใหม่')}
+  else{mark(b,S.first,c.w);beep(520);say('ถูกแล้ว! ช่องนี้ได้สีตามครั้งแรกที่ตอบผิด ไปช่องต่อไป')}
+  $('c'+k).disabled=true;next1();
+ }else{
+  if(S.first==null){S.combo=0;const same=chosen.s===c.s;S.first=same?'y':'r';setScore(same?5:0,b);
+   say(same?`“${chosen.w}” ผิด แต่อยู่วิชาเดียวกัน (+5) – คำนี้หายไปแล้ว เลือกใหม่! เวลายังเดินอยู่ ⏱`:`“${chosen.w}” ผิดวิชา (${SUBJ[chosen.s]}) 0 คะแนน – คำนี้หายไปแล้ว เลือกใหม่! ⏱`)}
+  else say(`“${chosen.w}” ผิดอีกแล้ว – หายไปแล้ว เลือกใหม่! ⏱`);
+  beep(200,.3);b.classList.remove('shake');void b.offsetWidth;b.classList.add('shake');
+  S.hid.add(k);const ch=$('c'+k);ch.classList.add('leave');setTimeout(()=>{if(S.hid.has(k))ch.classList.add('gone')},350);
+ }
 }
+function next1(){
+ S.i++;S.first=null;S.hid.clear();document.querySelectorAll('.chip').forEach(x=>x.classList.remove('leave','gone'));tReset();
+ if(S.i<M1.length){$('b'+S.i).classList.add('on')}
+ else{tStop();S.lock=true;setTimeout(()=>{say('ภารกิจ 1 สำเร็จ! ไปต่อกันเลย');setTimeout(m2,1400)},700)}
+}
+function onT1(){if(S.lock)return;const i=S.i,b=$('b'+i);if(S.first==null){S.combo=0;$('combo').textContent='×1'}mark(b,S.first||'r',M1[i].w);beep(200,.3);say(`⏰ หมดเวลา! เฉลย: ${M1[i].w}`);$('c'+i).disabled=true;next1()}
 // ---- Mission 2 ----
 function m2(){
- $('mname').textContent='🔎 ภารกิจ 2: แกะรหัสคำศัพท์';S.combo=0;$('combo').textContent='×1';
- $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">ถูก +10</span><span style="background:var(--r);color:#fff">ผิด −10 (เฉลยทันที)</span></div>';
+ $('mname').textContent='🔎 ภารกิจ 2: แกะรหัสคำศัพท์';S.combo=0;$('combo').textContent='×1';S.i=0;S.lock=false;
+ $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">ถูก +10 (เวลานับใหม่)</span><span style="background:var(--r);color:#fff">ผิด −10 (เฉลยทันที เวลาเดินต่อ)</span></div>';
  $('hint').innerHTML='<div class="hint">'+shuffle(M2.slice()).map(x=>`<span>${esc(x.th)}</span>`).join('')+'</div>';
- $('passage').innerHTML=join(P2,i=>`<input class="type" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${i+1}">`);
- $('ctrl').innerHTML='<div class="center"><button class="btn" id="chk" onclick="chk2()">ตรวจคำตอบ</button></div>';
- say('อ่านคำแปลภาษาไทยด้านบน แล้วพิมพ์คำศัพท์ภาษาอังกฤษลงในช่อง 8 ช่อง');
+ $('passage').innerHTML=join(P2,i=>`<input class="type" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${i+1}" ${i?'disabled':''} onkeydown="if(event.key==='Enter')sub2()">`);
+ $('ctrl').innerHTML='<div class="center"><button class="btn" id="chk" onclick="sub2()">ส่งคำตอบ</button></div>';
+ say('พิมพ์คำศัพท์ทีละช่อง แล้วกด Enter หรือ “ส่งคำตอบ” ⏱ มีเวลาคำละ 1 นาที');
+ $('t0').focus();tStart(onT2);
 }
-function chk2(){
- let ok=0;M2.forEach((x,i)=>{const inp=$('t'+i),v=inp.value.trim().toLowerCase();const b=document.createElement('button');
-  if(v===x.w){setScore(10,inp);b.className='blank g pop';ok++}else{setScore(-10,inp);b.className='blank r pop';b.title='คุณตอบ: '+v}
-  b.textContent=x.w;inp.replaceWith(b)});
- beep(ok>4?880:220,.3);$('chk').outerHTML='<button class="btn" onclick="m3()">ไปภารกิจสุดท้าย</button>';
- say(`ถูก ${ok}/8 คำ! คำที่ผิดเฉลยเป็นสีแดงแล้ว`);
+function sub2(to){
+ if(S.lock)return;const i=S.i,inp=$('t'+i),v=inp.value.trim().toLowerCase();
+ if(!v&&!to){inp.focus();return}
+ const w=M2[i].w,ok=!to&&v===w,b=document.createElement('button');
+ if(ok){setScore(10,inp);b.className='blank g pop';beep(660);say('ถูกต้อง! ⏱ เวลาเริ่มนับใหม่')}
+ else{setScore(-10,inp);b.className='blank r pop';b.title='คุณตอบ: '+v;beep(200,.3);say((to?'⏰ หมดเวลา! ':'ผิด! ')+`เฉลย: ${w}`+(to?'':' – เวลายังเดินต่อ'))}
+ b.textContent=w;inp.replaceWith(b);S.i++;if(ok)tReset();
+ if(S.i<M2.length){const n=$('t'+S.i);n.disabled=false;n.focus()}
+ else{tStop();S.lock=true;$('chk').outerHTML='<button class="btn" onclick="m3()">ไปภารกิจสุดท้าย</button>'}
 }
+function onT2(){sub2(true)}
 // ---- Mission 3 ----
 function m3(){
- $('mname').textContent='🎤 ภารกิจ 3: ถอดรหัสเสียง';S.sel=-1;S.done=0;S.used=[];
- $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">พูดถูก+ตำแหน่งถูก +10</span><span style="background:var(--y)">พูดถูก ตำแหน่งผิด +5</span><span style="background:var(--r);color:#fff">พูดผิด −10</span></div>';
+ $('mname').textContent='🎤 ภารกิจ 3: ถอดรหัสเสียง';S.sel=-1;S.done=0;S.used=[];S.lock=false;tStart(onT3);
+ $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">พูดถูก+ตำแหน่งถูก +10 (เวลานับใหม่)</span><span style="background:var(--y)">พูดถูก ตำแหน่งผิด +5</span><span style="background:var(--r);color:#fff">พูดผิด −10</span></div>';
  $('hint').innerHTML='<div class="hint">'+shuffle(M3.slice()).map(x=>`<span style="font-size:1.1rem">${x.w}</span>`).join('')+'</div>';
  $('passage').innerHTML=join(P3,i=>`<button class="blank on" id="v${i}" onclick="sel3(${i})">${i+1}</button>`);
  const sr=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -270,13 +301,19 @@ function said(txt){
  txt=(txt||'').toLowerCase().trim();if(!txt)return;
  const i=S.sel,hit=M3.findIndex(x=>txt.includes(x.w));const b=$('v'+i);b.style.outline='';b.classList.remove('on');
  const el=b;
- if(hit===i){setScore(10,el);mark(b,'g',M3[i].w);beep(880,.25);say('AI ได้ยินแล้ว: “'+M3[i].w+'” ถูกต้อง ✔')}
+ if(hit===i){setScore(10,el);mark(b,'g',M3[i].w);beep(880,.25);tReset();say('AI ได้ยินแล้ว: “'+M3[i].w+'” ถูกต้อง ✔')}
  else if(hit>=0){setScore(5,el);mark(b,'y',M3[i].w);beep(500);say(`ออกเสียง “${M3[hit].w}” ถูก แต่ผิดตำแหน่ง – ช่องนี้คือ “${M3[i].w}”`)}
  else{setScore(-10,el);mark(b,'r',M3[i].w);beep(200,.3);say(`AI ฟังเป็น “${txt.slice(0,24)}” – เฉลยช่องนี้คือ “${M3[i].w}”`)}
  S.used.push(i);S.sel=-1;S.done++;
- if(S.done===4)setTimeout(finish,1800);
+ if(S.done===4){tStop();setTimeout(finish,1800)}
 }
-function finish(){
+function onT3(){
+ if(S.done>=4)return;
+ const i=(S.sel>=0&&!S.used.includes(S.sel))?S.sel:M3.findIndex((_,j)=>!S.used.includes(j));
+ const b=$('v'+i);b.classList.remove('on');b.style.outline='';setScore(-10,b);mark(b,'r',M3[i].w);beep(200,.3);say(`⏰ หมดเวลา! ช่อง ${i+1} คือ “${M3[i].w}”`);
+ S.used.push(i);S.sel=-1;S.done++;if(S.done===4){tStop();setTimeout(finish,1800)}
+}
+function finish(){tStop();
  show('end');const s=S.score;$('fin').textContent=s;
  const r=s>=140?['🏆 นักสืบระดับตำนาน!','ไขคดีได้สมบูรณ์แบบ คำศัพท์แม่นมาก!']:s>=90?['🥇 นักสืบมือฉมัง','เก่งมาก! ทบทวนอีกนิดจะเต็มร้อย']:s>=40?['🥈 นักสืบฝึกหัด','ดีแล้ว! ลองเล่นอีกครั้งเพื่อทำคะแนนให้สูงขึ้น']:['🔍 นักสืบมือใหม่','ไม่เป็นไร ทบทวนคำศัพท์แล้วกลับมาไขคดีใหม่!'];
  $('rwho').textContent='👤 '+P.n+' · '+P.g+' เลขที่ '+P.c;$('rank').textContent=r[0];$('rtext').textContent=r[1];
