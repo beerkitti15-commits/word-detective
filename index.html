@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Detective – นักสืบคำศัพท์</title>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d2340;--night:#2b2f6b;--night2:#171a45;--gold:#ffc83d;--paper:#fff6dd;--g:#2fc46b;--y:#ffc83d;--r:#ef4d5b;--skin:#ffd0a6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#1d2340}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;font-family:'Mali','Tahoma',sans-serif;color:var(--ink);background:radial-gradient(circle at 20% 10%,#4b4fa8 0,transparent 40%),radial-gradient(circle at 85% 0,#7a3f9d 0,transparent 35%),linear-gradient(var(--night),var(--night2));background-color:var(--night2);overflow-x:hidden}
+.stars{position:fixed;inset:0;pointer-events:none;background-image:radial-gradient(2px 2px at 20px 30px,#fff8,transparent),radial-gradient(2px 2px at 140px 90px,#fff6,transparent),radial-gradient(1.5px 1.5px at 260px 40px,#fff9,transparent);background-size:300px 160px;animation:tw 6s linear infinite alternate}
+@keyframes tw{to{opacity:.35}}
+.moon{position:fixed;right:5%;top:4%;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff9d8,#ffe58a 60%,#e8c25a);box-shadow:0 0 50px #ffe58a88;animation:fl 7s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(10px)}}
+.wrap{position:relative;max-width:900px;margin:0 auto;padding:14px 14px 40px}
+h1,h2{font-family:'Bangers','Mali',cursive;letter-spacing:2px;font-weight:400;margin:0}
+.hud{display:flex;gap:8px;align-items:center;justify-content:space-between;color:#fff;margin-bottom:10px;flex-wrap:wrap}
+.pill{background:#ffffff22;border:2px solid #ffffff44;border-radius:30px;padding:4px 14px;font-weight:700}
+.pill b{color:var(--gold)}
+.card{background:var(--paper);border-radius:22px;padding:18px;border:4px solid var(--ink);box-shadow:0 8px 0 #0006;position:relative}
+.stage{display:flex;gap:14px;align-items:flex-end}
+.say{flex:1;background:#fff;border:3px solid var(--ink);border-radius:18px;padding:10px 14px;position:relative;font-weight:600;margin-bottom:40px}
+.say:before{content:"";position:absolute;left:-14px;bottom:18px;border:8px solid transparent;border-right:14px solid var(--ink)}
+.passage{line-height:2.4;font-size:1.08rem;margin:10px 0 14px;background:#fffbe9;border:2px dashed #b99a4a;border-radius:14px;padding:12px 16px}
+.blank{display:inline-block;min-width:110px;text-align:center;border:0;border-bottom:3px solid var(--ink);background:#e9e2c4;border-radius:8px 8px 0 0;font:inherit;font-weight:700;padding:0 8px;margin:0 3px;color:var(--ink);cursor:default;transition:.25s}
+.blank.on{background:#fff0a8;box-shadow:0 0 0 3px var(--gold);animation:pu 1s infinite;cursor:pointer}
+@keyframes pu{50%{transform:scale(1.06)}}
+.blank.g{background:var(--g);color:#fff;border-color:#157a3e}.blank.y{background:var(--y)}.blank.r{background:var(--r);color:#fff;border-color:#a1202c}
+.blank.pop{animation:pop .5s}@keyframes pop{30%{transform:scale(1.25) rotate(-3deg)}60%{transform:scale(.95)}}
+.shake{animation:sh .4s}@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.bank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{font:inherit;background:#fff;border:3px solid var(--ink);border-radius:14px;padding:6px 12px;cursor:pointer;box-shadow:0 4px 0 var(--ink);font-weight:700;transition:.1s}
+.chip small{display:block;font-weight:400;color:#555;font-size:.8rem}
+.chip:hover{transform:translateY(-2px)}.chip:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.chip[disabled]{opacity:.35;pointer-events:none}
+.btn{font:inherit;font-weight:700;font-size:1.1rem;background:var(--gold);border:3px solid var(--ink);border-radius:40px;padding:10px 26px;cursor:pointer;box-shadow:0 5px 0 var(--ink);color:var(--ink)}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.btn.mic{background:#ff8fa3}.btn.mic.rec{animation:pu .6s infinite;background:var(--r);color:#fff}
+.legend{display:flex;gap:6px;flex-wrap:wrap;font-size:.85rem;margin-bottom:6px}
+.legend span{padding:2px 10px;border-radius:20px;border:2px solid var(--ink);font-weight:700}
+.center{text-align:center}
+input.type{font:inherit;border:3px solid var(--ink);border-radius:12px;padding:6px 10px;width:150px;margin:0 3px;text-align:center;font-weight:700}
+.hint{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.hint span{background:#dff3ff;border:2px solid var(--ink);border-radius:12px;padding:2px 10px;font-weight:700;font-size:.9rem}
+.float{position:fixed;font-family:'Bangers';font-size:2rem;pointer-events:none;animation:up 1.1s forwards;z-index:9;text-shadow:2px 2px 0 #fff}
+@keyframes up{to{transform:translateY(-90px);opacity:0}}
+/* ===== 3D cartoon characters (CSS) ===== */
+.scene{perspective:700px;width:150px;height:200px;flex:none}
+.char{position:relative;width:150px;height:200px;transform-style:preserve-3d;animation:sway 5s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotateY(-22deg)}50%{transform:rotateY(22deg)}}
+.char *{position:absolute;transform-style:preserve-3d}
+.bob{inset:0;animation:bob 1.6s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-8px)}}
+.shadow{left:25px;bottom:-6px;width:100px;height:18px;border-radius:50%;background:#0005;filter:blur(4px)}
+.body{left:38px;top:98px;width:74px;height:84px;border-radius:36px 36px 22px 22px;background:radial-gradient(circle at 32% 25%,var(--c1),var(--c2) 75%);box-shadow:inset -8px -10px 18px #0004;transform:translateZ(0)}
+.body:after{content:"";left:30px;top:0;width:14px;height:84px;background:#0002;border-radius:4px}
+.head{left:30px;top:22px;width:90px;height:84px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff2e0,var(--skin) 55%,#e9a672);box-shadow:inset -10px -12px 20px #a5532b55;transform:translateZ(22px)}
+.eye{top:36px;width:15px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 20%,#1d2340 22%);animation:bl 4s infinite;transform:translateZ(8px)}
+.eye.l{left:22px}.eye.r{right:22px}@keyframes bl{0%,94%,100%{height:20px}97%{height:2px}}
+.cheek{top:54px;width:14px;height:9px;border-radius:50%;background:#ff7f8f88}.cheek.l{left:12px}.cheek.r{right:12px}
+.mouth{left:34px;top:60px;width:22px;height:11px;border-radius:0 0 22px 22px;background:#8a2d3c;transform:translateZ(8px)}
+.hat{left:20px;top:2px;width:110px;height:50px;border-radius:55px 55px 12px 12px;background:radial-gradient(circle at 35% 25%,var(--h1),var(--h2));box-shadow:inset -10px -8px 14px #0005;transform:translateZ(36px)}
+.hat:before{content:"";left:40px;top:-8px;width:30px;height:14px;border-radius:50%;background:var(--h2)}
+.brim{left:14px;top:40px;width:122px;height:14px;border-radius:50%;background:var(--h2);transform:translateZ(38px);box-shadow:0 5px 8px #0004}
+.mask{left:6px;top:32px;width:78px;height:26px;border-radius:12px;background:#222;transform:translateZ(10px)}
+.mask:before,.mask:after{content:"";top:8px;width:16px;height:12px;border-radius:50%;background:#fff}.mask:before{left:12px}.mask:after{right:12px}
+.arm{left:104px;top:112px;width:16px;height:52px;border-radius:10px;background:var(--c2);transform:rotate(-30deg) translateZ(30px);transform-origin:top;animation:wv 2.4s ease-in-out infinite}
+@keyframes wv{50%{transform:rotate(-55deg) translateZ(30px)}}
+.lens{left:-2px;top:44px;width:36px;height:36px;border-radius:50%;border:6px solid #b8860b;background:radial-gradient(circle at 30% 30%,#fff9,#9fe3ff66);box-shadow:0 0 12px #bfe9ff}
+.lens:after{content:"";left:30px;top:30px;width:8px;height:26px;background:#6b4a14;border-radius:5px;transform:rotate(-40deg);transform-origin:top}
+.owl{font-size:2.4rem;animation:bob 2s infinite;display:inline-block}
+/* screens */
+.scr{display:none}.scr.on{display:block}
+.title{color:#fff;text-align:center;margin:6px 0}
+.title h1{font-size:clamp(2.2rem,8vw,4rem);color:var(--gold);text-shadow:3px 3px 0 #000a;transform:rotate(-2deg)}
+.menu{display:grid;gap:10px;margin:14px 0}.menu div{background:#fff;border:3px solid var(--ink);border-radius:14px;padding:8px 14px}
+.duo{display:flex;justify-content:center;gap:20px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+@media(max-width:560px){.stage{flex-direction:column;align-items:center}.say{margin-bottom:0}.say:before{display:none}.scene{transform:scale(.8);margin:-20px 0}}
+</style></head><body>
+<div class="stars"></div><div class="moon"></div>
+<div class="wrap">
+
+<div class="scr on" id="s0">
+ <div class="title"><div style="font-size:1.1rem">🔍 Crack the Codes 🔍</div><h1>WORD DETECTIVE</h1><h2 style="font-size:1.8rem">นักสืบคำศัพท์: ไขรหัสลับ</h2></div>
+ <div class="duo" id="duo"></div>
+ <div class="card">
+  <div class="menu">
+   <div>🕵️ <b>ภารกิจ 1 ล่าเบาะแส</b> – เลือกคำศัพท์เติม 12 ช่อง (เขียว +10 / เหลือง +5 / แดง 0 + คอมโบ)</div>
+   <div>🔎 <b>ภารกิจ 2 แกะรหัสคำศัพท์</b> – พิมพ์คำศัพท์ 8 ช่องจากคำแปลไทย (ถูก +10 / ผิด −10)</div>
+   <div>🎤 <b>ภารกิจ 3 ถอดรหัสเสียง</b> – พูดคำศัพท์ 4 ช่อง (ถูกที่ +10 / ผิดที่ +5 / ออกเสียงผิด −10)</div>
+  </div>
+  <div class="center"><button class="btn" onclick="start()">เริ่มสืบคดี!</button></div>
+ </div>
+</div>
+
+<div class="scr" id="game">
+ <div class="hud"><span class="pill" id="mname"></span><span class="pill">คะแนน <b id="score">0</b></span><span class="pill">คอมโบ <b id="combo">×1</b></span></div>
+ <div class="card">
+  <div class="stage"><div class="scene" id="hero"></div><div class="say" id="say"></div></div>
+  <div id="legend"></div>
+  <div id="hint"></div>
+  <div class="passage" id="passage"></div>
+  <div id="ctrl"></div>
+ </div>
+</div>
+
+<div class="scr" id="end">
+ <div class="card center">
+  <h1 style="font-size:2.6rem" id="rank"></h1>
+  <div class="duo" id="duo2"></div>
+  <p style="font-size:1.4rem;margin:6px">คะแนนรวม <b id="fin" style="font-size:2.4rem;color:#d4380d"></b></p>
+  <p id="rtext"></p>
+  <button class="btn" onclick="start()">เล่นอีกครั้ง</button>
+ </div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function char(o){return `<div class="scene"><div class="char" style="--c1:${o.c1};--c2:${o.c2};--h1:${o.h1};--h2:${o.h2};animation-delay:${o.d||0}s"><div class="shadow"></div><div class="bob">
+<div class="body"></div><div class="arm"><div class="lens"></div></div>
+<div class="head"><div class="eye l"></div><div class="eye r"></div>${o.mask?'<div class="mask"></div>':''}<div class="cheek l"></div><div class="cheek r"></div><div class="mouth"></div></div>
+<div class="hat"></div><div class="brim"></div></div></div></div>`}
+const DOT={c1:'#8fa0e8',c2:'#4a58b8',h1:'#d9a45b',h2:'#8a5a22'};
+const BAD={c1:'#6b6b7a',c2:'#2d2d3a',h1:'#555',h2:'#222',mask:1,d:-2};
+$('duo').innerHTML=char(DOT)+char(BAD);$('duo2').innerHTML=char(DOT)+char(BAD);
+let S={};
+// ---- DATA ----
+const M1=[
+{w:'fraction',th:'เศษส่วน',s:'M',t:'Only 1/2 of the golden cake was left, so a '},
+{w:'angle',th:'มุม',s:'M',t:' of it was missing. The footprints turned at a sharp '},
+{w:'multiply',th:'คูณ',s:'M',t:' of 90 degrees near the door. To count the cookies, Dot had to '},
+{w:'gravity',th:'แรงโน้มถ่วง',s:'S',t:' 6 by 4 and got 24. A vase fell to the floor because '},
+{w:'magnet',th:'แม่เหล็ก',s:'S',t:' pulls everything down. A metal key stuck to the strange '},
+{w:'energy',th:'พลังงาน',s:'S',t:' on the desk. The lamp needs electric '},
+{w:'border',th:'พรมแดน',s:'SS',t:' to give light. The thief ran across the '},
+{w:'citizen',th:'พลเมือง',s:'SS',t:' line between two countries. A brave '},
+{w:'trade',th:'การค้า',s:'SS',t:' of the town called the police. He wanted to buy and sell stolen goods in a secret '},
+{w:'sentence',th:'ประโยค',s:'L',t:'. The note was one '},
+{w:'adjective',th:'คำคุณศัพท์',s:'L',t:' that started with a capital letter and ended with a period. The word “sneaky” is an '},
+{w:'synonym',th:'คำพ้องความหมาย',s:'L',t:' because it describes the thief. “Clever” is a '}];
+const M1end=' of “smart” because it has a similar meaning. Case closed!';
+const SUBJ={M:'Mathematics',S:'Science',SS:'Social Studies',L:'Language'};
+const M2=[
+{w:'total',th:'ผลรวม',t:'Dot added the clues and the '},
+{w:'equal',th:'เท่ากัน',t:' was seven. Two footprints were '},
+{w:'planet',th:'ดาวเคราะห์',t:' in size. The thief looked at a '},
+{w:'experiment',th:'การทดลอง',t:' through a telescope. In a science '},
+{w:'market',th:'ตลาด',t:' Dot tested the ink. At the '},
+{w:'map',th:'แผนที่',t:' she found a shop. Using a '},
+{w:'story',th:'เรื่องเล่า',t:' she followed the path. The shopkeeper told a '},
+{w:'describe',th:'บรรยาย',t:' and Dot asked him to '}];
+const M2end=' the thief.';
+const M3=[
+{w:'triangle',t:'The secret door had the shape of a '},
+{w:'microscope',t:'. Dot used a '},
+{w:'culture',t:' to see the tiny fingerprint. The thief loved the local '},
+{w:'poem',t:' of the town and left a '}];
+const M3end=' on the wall.';
+// ---- helpers ----
+function say(t){$('say').textContent=t}
+function setScore(d,e){S.score+=d;$('score').textContent=S.score;$('combo').textContent='×'+Math.max(1,S.combo);
+ if(e){const f=document.createElement('div');f.className='float';f.textContent=(d>0?'+':'')+d;f.style.color=d>0?'#2fc46b':d<0?'#ef4d5b':'#999';const r=e.getBoundingClientRect();f.style.left=r.left+'px';f.style.top=r.top+'px';document.body.appendChild(f);setTimeout(()=>f.remove(),1100)}}
+function beep(f,d=.12){try{const a=S.ac||(S.ac=new (window.AudioContext||window.webkitAudioContext)());const o=a.createOscillator(),g=a.createGain();o.frequency.value=f;o.type='triangle';g.gain.value=.08;o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d)}catch(e){}}
+function show(id){document.querySelectorAll('.scr').forEach(x=>x.classList.remove('on'));$(id).classList.add('on');window.scrollTo(0,0)}
+function shuffle(a){return a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1])}
+function mark(el,cls,txt){el.className='blank pop '+cls;el.textContent=txt}
+function start(){S={score:0,combo:0,m:1,i:0};$('score').textContent=0;$('combo').textContent='×1';show('game');m1()}
+// ---- Mission 1 ----
+function passageHTML(a,end,mk){return a.map((x,i)=>x.t+`<button class="blank" id="b${i}" ${mk?'':''}>${i+1}</button>`).join('')+end}
+function m1(){
+ $('mname').textContent='🕵️ ภารกิจ 1: ล่าเบาะแส';S.i=0;
+ $('hero').outerHTML=char(DOT).replace('class="scene"','class="scene" id="hero"');
+ $('hint').innerHTML='';
+ $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">เขียว ถูก +10</span><span style="background:var(--y)">เหลือง ผิดแต่วิชาเดียวกัน +5</span><span style="background:var(--r);color:#fff">แดง ผิดคนละวิชา 0</span></div>';
+ // passage texts are offset: first segment before blank 1, etc.
+ const segs=['Only 1/2 of the golden cake was left, so a ','of it was missing. The footprints turned at a sharp ','of 90 degrees near the door. To count the cookies, Dot had to ','6 by 4 and got 24. A vase fell to the floor because ','pulls everything down. A metal key stuck to the strange ','on the desk. The lamp needs electric ','to give light. The thief ran across the ','line between two countries. A brave ','of the town called the police. He wanted to buy and sell stolen goods in a secret ','. The note was one ','that started with a capital letter and ended with a period. The word “sneaky” is an ','because it describes the thief. “Clever” is a '];
+ $('passage').innerHTML=segs.map((t,i)=>t+`<button class="blank" id="b${i}">${i+1}</button>`).join(' ')+' of “smart” because it has a similar meaning. Case closed!';
+ $('ctrl').innerHTML='<div class="bank" id="bank">'+shuffle(M1.map((x,i)=>i)).map(i=>`<button class="chip" id="c${i}" onclick="pick1(${i})">${M1[i].w}<small>${M1[i].th}</small></button>`).join('')+'</div>';
+ $('b0').classList.add('on');say('ช่อง 1: อ่านเบาะแสรอบ ๆ ช่องว่าง แล้วเลือกคำศัพท์ที่ใช่!');
+}
+function pick1(k){
+ const i=S.i,c=M1[i],b=$('b'+i),chosen=M1[k];b.classList.remove('on');
+ if(k===i){S.combo++;const p=10*Math.max(1,S.combo);setScore(p,b);mark(b,'g',c.w);beep(660);beep(880,.2);say(S.combo>1?`ยอดเยี่ยม! คอมโบ ×${S.combo} 🔥`:'ถูกต้อง! เบาะแสนี้ใช่เลย ✔');$('c'+k).disabled=true}
+ else{S.combo=0;const same=chosen.s===c.s;if(same){setScore(5,b);mark(b,'y',c.w);say(`เกือบแล้ว! “${chosen.w}” อยู่วิชาเดียวกัน (${SUBJ[c.s]}) – เฉลย: ${c.w}`)}
+  else{setScore(0,b);mark(b,'r',c.w);say(`ผิดวิชา! “${chosen.w}” เป็นวิชา ${SUBJ[chosen.s]} – เฉลย: ${c.w}`)}
+  beep(200,.3);b.classList.add('shake');$('c'+i).disabled=true}
+ S.i++;
+ if(S.i<M1.length){$('b'+S.i).classList.add('on')}else setTimeout(()=>{say('ภารกิจ 1 สำเร็จ! ไปต่อกันเลย');setTimeout(m2,1400)},700);
+}
+// ---- Mission 2 ----
+function m2(){
+ $('mname').textContent='🔎 ภารกิจ 2: แกะรหัสคำศัพท์';S.combo=0;$('combo').textContent='×1';
+ $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">ถูก +10</span><span style="background:var(--r);color:#fff">ผิด −10 (เฉลยทันที)</span></div>';
+ $('hint').innerHTML='<div class="hint">'+shuffle(M2.slice()).map(x=>`<span>${x.th}</span>`).join('')+'</div>';
+ $('passage').innerHTML=M2.map((x,i)=>x.t+`<input class="type" id="t${i}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${i+1}">`).join('')+M2end;
+ $('ctrl').innerHTML='<div class="center"><button class="btn" id="chk" onclick="chk2()">ตรวจคำตอบ</button></div>';
+ say('อ่านคำแปลภาษาไทยด้านบน แล้วพิมพ์คำศัพท์ภาษาอังกฤษลงในช่อง 8 ช่อง');
+}
+function chk2(){
+ let ok=0;M2.forEach((x,i)=>{const inp=$('t'+i),v=inp.value.trim().toLowerCase();const b=document.createElement('button');
+  if(v===x.w){setScore(10,inp);b.className='blank g pop';ok++}else{setScore(-10,inp);b.className='blank r pop';b.title='คุณตอบ: '+v}
+  b.textContent=x.w;inp.replaceWith(b)});
+ beep(ok>4?880:220,.3);$('chk').outerHTML='<button class="btn" onclick="m3()">ไปภารกิจสุดท้าย</button>';
+ say(`ถูก ${ok}/8 คำ! คำที่ผิดเฉลยเป็นสีแดงแล้ว`);
+}
+// ---- Mission 3 ----
+function m3(){
+ $('mname').textContent='🎤 ภารกิจ 3: ถอดรหัสเสียง';S.sel=-1;S.done=0;S.used=[];
+ $('legend').innerHTML='<div class="legend"><span style="background:var(--g);color:#fff">พูดถูก+ตำแหน่งถูก +10</span><span style="background:var(--y)">พูดถูก ตำแหน่งผิด +5</span><span style="background:var(--r);color:#fff">พูดผิด −10</span></div>';
+ $('hint').innerHTML='<div class="hint">'+shuffle(M3.slice()).map(x=>`<span style="font-size:1.1rem">${x.w}</span>`).join('')+'</div>';
+ $('passage').innerHTML=M3.map((x,i)=>x.t+`<button class="blank on" id="v${i}" onclick="sel3(${i})">${i+1}</button>`).join('')+M3end;
+ const sr=window.SpeechRecognition||window.webkitSpeechRecognition;
+ $('ctrl').innerHTML=`<div class="center"><button class="btn mic" id="mic" onclick="listen()">🎤 กดแล้วพูด</button>
+ <div style="margin-top:12px;font-size:.9rem">ไมค์ใช้ไม่ได้? พิมพ์แทนเสียง: <input class="type" id="tx" placeholder="คำที่พูด"> <button class="btn" style="font-size:.9rem;padding:4px 14px" onclick="said($('tx').value);$('tx').value=''">ส่ง</button></div></div>`;
+ say(sr?'1) แตะช่องที่ต้องการ  2) กดไมค์แล้วพูดคำศัพท์ AI จะพิมพ์ให้เอง':'เบราว์เซอร์นี้ไม่รองรับไมค์ – ใช้ช่องพิมพ์แทนเสียงด้านล่างได้เลย');
+}
+function sel3(i){if(S.used.includes(i))return;S.sel=i;M3.forEach((_,j)=>{const b=$('v'+j);if(!S.used.includes(j))b.style.outline=j===i?'4px solid #ff8fa3':''});say(`เลือกช่อง ${i+1} แล้ว – กดไมค์แล้วพูดได้เลย`)}
+function listen(){
+ const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(S.sel<0)return say('เลือกช่องว่างก่อนนะ แล้วค่อยพูด');
+ if(!SR)return say('ไม่รองรับไมค์ – ใช้ช่องพิมพ์แทนเสียงได้เลย');
+ const r=new SR();r.lang='en-US';r.maxAlternatives=3;const m=$('mic');m.classList.add('rec');m.textContent='🎧 กำลังฟัง...';
+ r.onresult=e=>{const alts=[...e.results[0]].map(a=>a.transcript);said(alts.join(' '))};
+ r.onerror=()=>say('ฟังไม่ชัด/ไม่ได้รับสิทธิ์ไมค์ ลองใหม่ หรือพิมพ์แทนเสียง');
+ r.onend=()=>{m.classList.remove('rec');m.textContent='🎤 กดแล้วพูด'};
+ try{r.start()}catch(e){}
+}
+function said(txt){
+ if(S.sel<0)return say('เลือกช่องว่างก่อนนะ');
+ txt=(txt||'').toLowerCase().trim();if(!txt)return;
+ const i=S.sel,hit=M3.findIndex(x=>txt.includes(x.w));const b=$('v'+i);b.style.outline='';b.classList.remove('on');
+ const el=b;
+ if(hit===i){setScore(10,el);mark(b,'g',M3[i].w);beep(880,.25);say('AI ได้ยินแล้ว: “'+M3[i].w+'” ถูกต้อง ✔')}
+ else if(hit>=0){setScore(5,el);mark(b,'y',M3[i].w);beep(500);say(`ออกเสียง “${M3[hit].w}” ถูก แต่ผิดตำแหน่ง – ช่องนี้คือ “${M3[i].w}”`)}
+ else{setScore(-10,el);mark(b,'r',M3[i].w);beep(200,.3);say(`AI ฟังเป็น “${txt.slice(0,24)}” – เฉลยช่องนี้คือ “${M3[i].w}”`)}
+ S.used.push(i);S.sel=-1;S.done++;
+ if(S.done===4)setTimeout(finish,1800);
+}
+function finish(){
+ show('end');const s=S.score;$('fin').textContent=s;
+ const r=s>=140?['🏆 นักสืบระดับตำนาน!','ไขคดีได้สมบูรณ์แบบ คำศัพท์แม่นมาก!']:s>=90?['🥇 นักสืบมือฉมัง','เก่งมาก! ทบทวนอีกนิดจะเต็มร้อย']:s>=40?['🥈 นักสืบฝึกหัด','ดีแล้ว! ลองเล่นอีกครั้งเพื่อทำคะแนนให้สูงขึ้น']:['🔍 นักสืบมือใหม่','ไม่เป็นไร ทบทวนคำศัพท์แล้วกลับมาไขคดีใหม่!'];
+ $('rank').textContent=r[0];$('rtext').textContent=r[1];
+}
+</script></body></html>
